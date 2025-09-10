@@ -1,44 +1,104 @@
 ---
 title: "Server Shenanigans"
-format: html
-editor: visual
+format: 
+  html:
+    theme: pulse
+    embed-resources: true
+editor: source
 ---
 
-## A few ways to take advantage of servers
+## Logging in to NCEAS servers
 
-### Logging in to NCEAS servers{.tabset}
+:::{.panel-tabset}
 
-#### Logging in using web browser:
+### Log in via web browser
 
-#### Logging in via `ssh`
+Access the server using `servername.nceas.ucsb.edu` as the URL in the browser.  From that, select the server application you want to use (and then probably bookmark that!)
 
-Secure Socket Shell (SSH) is a common network protocol to create a secure, encrypted link between two computers, e.g., for remote access or file copying.  In Terminal (Mac) or command line (PC):
+::: {#fig-htop layout-ncol=2}
 
-```
-C:/Users/casey/> ssh ohara@aurora.nceas.ucsb.edu
-ohara@aurora.nceas.ucsb.edu's password:
-```
+![Browser window to access Aurora](img/aurora_web.png){#fig-auroraweb .lightbox}
 
-### copying files to/from server using `scp`
+![RStudio Server on Aurora](img/aurora_web_rstudio.png){#fig-aurorawebrstudio .lightbox}
 
-OpenSSH secure file copy `scp` can transfer files from one computer/server to another via SSH.
+Accessing Aurora through a web browser
+:::
 
-### `byobu` for creating text-based interactive windows in Linux
 
-When working in Linux it can be helpful to have multiple windows running different operations on a server or computer.  The `byobu` app lets you create multiple tabs in the Linux terminal that can be running different processes.
 
-byobu-enable
-byobu
+### Log in via `ssh`
 
-* `F2` to create new tabs
-* `F3` and `F4` to navigate between tabs (leftward or rightward)
-* `F6` to exit `byobu` mode leaving the session intact - next time you enter `byobu` mode it will still have the same tabs available
-* `exit` to close a `byobu` tab (if it's the last tab, it closes the whole session and exits you out to the regular terminal)
+Secure Socket Shell (SSH) is a common network protocol to create a secure, encrypted link between two computers, e.g., for remote access or file copying. In Terminal (Mac) or command line (PC):
 
-### `htop` for real time process monitoring
+![](img/ssh_windows.png)
+
+Once you log in successfully, you'll see a command line interface for the server.
+
+![](img/aurora_linux.png)
+
+:::
+
+## Copying files to/from server using `scp`
+
+OpenSSH secure file copy `scp` can transfer files from one computer/server to another via SSH.  You will be prompted to enter your password (I believe you can also embed that in the command but I prefer not to do that...)
+
+:::{.panel-tabset}
+
+### Local to remote
+
+Note, assuming you are doing this from your local computer and reaching out to the server, the default path on the remote server is probably your home directory.  The default path on your local computer is whatever folder you happen to be in at the moment.
+
+* `scp <local file path> <remote username>@<remote server name>`
+    * e.g., `scp scp_test.R ohara@aurora.nceas.ucsb.edu`
+* `scp <local file path> <remote username>@<remote server name>:<remote file name>`
+    * e.g., `scp scp_test.R ohara@aurora.nceas.ucsb.edu:~/test/scp_test2.R` (note, directory must exist!)
+    
+### Remote to local
+
+Note, assuming you are doing this from your local computer and reaching out to the server, the default path on the remote server is probably your home directory.  The default path on your local computer is whatever folder you happen to be in at the moment.  
+
+Unless you know the IP address of your local computer, you probably want to do this  on your local, reaching out to the server.
+
+* `scp <remote username>@<remote server name>:<remote file name> <local file path>`
+    * e.g., `scp ohara@aurora.nceas.ucsb.edu:~/test/scp_test2.R scp_test3.R`
+
+### Remote to remote
+
+Basically the same as local-to-remote (or vice versa), except that the server where your entering the command becomes "local"...  when it asks for a password, it wants the password to the other server.
+
+* `scp <file path on current remote> <other remote username>@<other remote server name>:<other remote filename>`
+    * e.g., `scp ~/test/scp_test2.R ohara@mazu.nceas.ucsb.edu:~/github/scp_test2a.R`
+
+:::
+
+## Using `byobu` to manage text-based interactive windows in Linux
+
+When working in Linux it can be helpful to have multiple windows running different operations on a server or computer. The `byobu` app lets you create multiple tabs in the Linux terminal that can be running different processes.
+
+`byobu-enable` to enable `byobu` but doesn't run it yet.
+
+`byobu` to activate `byobu` mode.
+
+-   `F2` to create new tabs
+-   `F3` and `F4` to navigate between tabs (leftward or rightward)
+-   `F6` to exit `byobu` mode leaving the session intact - next time you enter `byobu` mode it will still have the same tabs available
+-   `exit` to close a `byobu` tab (if it's the last tab, it closes the whole session and exits you out to the regular terminal)
+
+![](img/byobu_aurora.png)
+
+## Using `htop` for real time process monitoring
 
 Using `htop` you can see processors and memory in use, and below that a list of processes that are running, including owner, CPU usage, memory usage, etc.
 
-Clicking on the column headers on the process list, you can sort by CPU usage or memory or username (for example).  If a process has stalled, you can select the process and kill it (force it to end) - sometimes necessary if a parallel process has failed, leaving orphaned processes stuck. BUT generally not a great position to be in - be very careful!
+::: {#fig-htop layout-ncol=2}
 
-### parallelization
+![`htop` on Mazu (88 cores, 126 GB RAM)](img/htop_mazu.png){#fig-mazu .lightbox}
+
+![`htop` on Aurora (336 cores, 2.2 TB RAM)](img/htop_aurora.png){#fig-aurora .lightbox}
+
+`htop` on Mazu and Aurora
+:::
+
+Clicking on the column headers on the process list, you can sort by CPU usage or memory or username (for example). If a process has stalled, you can select the process and kill it (force it to end) - sometimes necessary if a parallel process has failed, leaving orphaned processes stuck. BUT generally not a great position to be in - be very careful!
+
+## Parallelization of code
