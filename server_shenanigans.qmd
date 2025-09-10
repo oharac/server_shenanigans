@@ -1,0 +1,44 @@
+---
+title: "Server Shenanigans"
+format: html
+editor: visual
+---
+
+## A few ways to take advantage of servers
+
+### Logging in to NCEAS servers{.tabset}
+
+#### Logging in using web browser:
+
+#### Logging in via `ssh`
+
+Secure Socket Shell (SSH) is a common network protocol to create a secure, encrypted link between two computers, e.g., for remote access or file copying.  In Terminal (Mac) or command line (PC):
+
+```
+C:/Users/casey/> ssh ohara@aurora.nceas.ucsb.edu
+ohara@aurora.nceas.ucsb.edu's password:
+```
+
+### copying files to/from server using `scp`
+
+OpenSSH secure file copy `scp` can transfer files from one computer/server to another via SSH.
+
+### `byobu` for creating text-based interactive windows in Linux
+
+When working in Linux it can be helpful to have multiple windows running different operations on a server or computer.  The `byobu` app lets you create multiple tabs in the Linux terminal that can be running different processes.
+
+byobu-enable
+byobu
+
+* `F2` to create new tabs
+* `F3` and `F4` to navigate between tabs (leftward or rightward)
+* `F6` to exit `byobu` mode leaving the session intact - next time you enter `byobu` mode it will still have the same tabs available
+* `exit` to close a `byobu` tab (if it's the last tab, it closes the whole session and exits you out to the regular terminal)
+
+### `htop` for real time process monitoring
+
+Using `htop` you can see processors and memory in use, and below that a list of processes that are running, including owner, CPU usage, memory usage, etc.
+
+Clicking on the column headers on the process list, you can sort by CPU usage or memory or username (for example).  If a process has stalled, you can select the process and kill it (force it to end) - sometimes necessary if a parallel process has failed, leaving orphaned processes stuck. BUT generally not a great position to be in - be very careful!
+
+### parallelization
