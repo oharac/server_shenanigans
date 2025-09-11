@@ -119,45 +119,97 @@ At least three good options for parallelization in R:
 
 Let's create a function that is overly complicated, so it'll take a little time to run and use up a little memory.  This function will take a value `x` and create a big sample from a normal distribution, mean `x`, sd `x/2`.  Then it will find the mean and standard deviation of that sample, and return that as a three-element dataframe.  
 
-```{r}
+```{r define slow function}
 do_stuff <- function(x, n = 1e8) {
   rand_vec <- rnorm(n, mean = x, sd = x/2)
   mean_x <- mean(rand_vec)
   sd_x   <- sd(rand_vec)
   return(data.frame(x = x, mean = mean_x, sd = sd_x))
 }
-### on home PC:
-# system.time(y <- do_stuff(x = 9))
-#   user  system elapsed 
-#   5.02    0.12    5.25
-# y
+### on Aurora:
+system.time(y <- do_stuff(x = 9))
+#    user  system elapsed 
+#   3.940   0.501   4.438 
+y
 #   x     mean       sd
 # 1 9 9.000173 4.500088
 ```
 
+:::{.panel-tabset}
+
+#### `for` loop
+
 A standard `for` loop on 4 elements takes 4 times as long
 
-```{r}
+```{r for loop}
+test_vec <- 1:4
 system.time({
-out_list <- list(1, 2, 3, 4) ### initialize an output vector
-  for(i in 1:4) {
+  out_list <- list(1, 2, 3, 4) ### initialize an output vector
+  for(i in test_vec) {
     out_list[[i]] <- do_stuff(x = i)
   }
 })
-### on home PC: 4 times as long
-#  user  system elapsed 
-# 18.33    0.44   19.41 
+### on Aurora: 4 times as long
+#   user  system elapsed 
+# 15.574   1.945  17.507 
 dplyr::bind_rows(out_list)
 ```
 
-A standard `lapply` does too:
+#### `lapply`
 
-```{r}
+A standard `lapply` on 4 elements also takes about 4 times as long:
+
+```{r lapply}
 system.time({
-  out_list <- lapply(X = 1:4, FUN = do_stuff)
+  out_list <- lapply(X = test_vec, FUN = do_stuff)
 })
-  #  user  system elapsed 
-  # 18.51    0.33   19.66 
+ #   user  system elapsed 
+ # 15.479   1.500  16.969 
 dplyr::bind_rows(out_list)
 ```
 
+#### `parallel::mclapply`
+
+A parallelized `mclapply` on 4 elements, across 4 cores, runs in about the same time as the single function:
+
+```{r four cores}
+system.time({
+  out_list <- parallel::mclapply(X = test_vec, FUN = do_stuff, mc.cores = 4)
+})
+### on Aurora
+#  user  system elapsed 
+# 0.008   0.024   4.199 
+dplyr::bind_rows(out_list)
+```
+
+More elements, more cores:
+
+```{r twenty cores}
+system.time({
+  out_list <- parallel::mclapply(X = 1:20, FUN = do_stuff, mc.cores = 20)
+})
+### on Aurora
+#  user  system elapsed 
+# 0.008   0.024   4.199 
+dplyr::bind_rows(out_list)
+```
+
+:::
+
+### Parallelization notes and etiquette
+
+Time: $T_{total} = \frac{N_{processes}}{N_{cores}}\times t_{process}$
+
+Memory: $Mem_{total} = Mem_{process} \times N_{cores}$ (sort of...)
+
+* Each process/iteration must be independent - result does not depend on the output of another iteration
+* More cores means faster: the server can be working on each process in parallel, at the same time
+* BUT: each core requires memory
+
+Aurora has a 💩-ton of cores and a 💩-ton of memory, but also lots of other users who want to access it, so be polite:
+
+* don't hog all the cores, don't hog all the memory, don't crash the server
+* use `htop` to see if there are currently people using a lot of cores and/or memory, and check in with them
+* use `htop` to test complex parallelization functionality on a small sample to make sure it is working properly before setting it loose on the server
+
+Note also: sometimes a slow function can be improved without parallelization!  use profiling to identify time-consuming or memory-consuming processes within your code...
