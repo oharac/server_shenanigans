@@ -101,4 +101,63 @@ Using `htop` you can see processors and memory in use, and below that a list of 
 
 Clicking on the column headers on the process list, you can sort by CPU usage or memory or username (for example). If a process has stalled, you can select the process and kill it (force it to end) - sometimes necessary if a parallel process has failed, leaving orphaned processes stuck. BUT generally not a great position to be in - be very careful!
 
-## Parallelization of code
+## Parallelizing code
+
+At least three good options for parallelization in R:
+
+* `parallel` package (base R): `parallel::mclapply()` is a parallelized version of `base::lapply()`
+    * `parallel::mclapply(X, FUN, ..., mc.cores)`: `X` is a list or vector over which we want to iterate the `FUN` function (note, the variable passed to `X` must be the first argument in `FUN`); `...` is additional arguments to `FUN` (e.g., `na.rm = TRUE`); `mc.cores` is the number of cores to be used in parallel.
+    * Note, this DOES NOT work on Windows... but will work on Linux servers and Mac OSX.
+* `furrr` package: a set of `future_map()` functions analogous to `purrr` functions
+    * `furrr::future_map()`, `future_map2()`, etc.
+    * e.g., `future_map(.x, .f, ..., .options = furrr_options())` where `.x` is the list/vector, `.f` is the function, and `furrr_options()` lets you set up options for the parallel workers.
+    * If you're familiar with `purrr` then this would be a good way to go.
+* `doParallel` and `foreach` packages: `%dopar%` function will apply parallel execution of `%do%` infix function.
+    * I haven't used this one.  Requires separately registering a parallel backend (with `doParallel::registerDoParallel`).  Doesn't look very intuitive...
+
+### Example with `parallel::mclapply()`
+
+Let's create a function that is overly complicated, so it'll take a little time to run and use up a little memory.  This function will take a value `x` and create a big sample from a normal distribution, mean `x`, sd `x/2`.  Then it will find the mean and standard deviation of that sample, and return that as a three-element dataframe.  
+
+```{r}
+do_stuff <- function(x, n = 1e8) {
+  rand_vec <- rnorm(n, mean = x, sd = x/2)
+  mean_x <- mean(rand_vec)
+  sd_x   <- sd(rand_vec)
+  return(data.frame(x = x, mean = mean_x, sd = sd_x))
+}
+### on home PC:
+# system.time(y <- do_stuff(x = 9))
+#   user  system elapsed 
+#   5.02    0.12    5.25
+# y
+#   x     mean       sd
+# 1 9 9.000173 4.500088
+```
+
+A standard `for` loop on 4 elements takes 4 times as long
+
+```{r}
+system.time({
+out_list <- list(1, 2, 3, 4) ### initialize an output vector
+  for(i in 1:4) {
+    out_list[[i]] <- do_stuff(x = i)
+  }
+})
+### on home PC: 4 times as long
+#  user  system elapsed 
+# 18.33    0.44   19.41 
+dplyr::bind_rows(out_list)
+```
+
+A standard `lapply` does too:
+
+```{r}
+system.time({
+  out_list <- lapply(X = 1:4, FUN = do_stuff)
+})
+  #  user  system elapsed 
+  # 18.51    0.33   19.66 
+dplyr::bind_rows(out_list)
+```
+
